@@ -5,16 +5,20 @@ class AudioInfo {
   static const MethodChannel _channel = MethodChannel('audio_info');
 
   static Future<AudioData?> getAudioInfo(String filePath) async {
-    final audioInfoMap = await _channel.invokeMethod('getInfo', {'filePath': filePath});
-    return audioInfoMap != null ? AudioData.fromMap(Map<String, dynamic>.from(audioInfoMap)) : null;
+    final audioInfoMap =
+        await _channel.invokeMethod('getInfo', {'filePath': filePath});
+    return audioInfoMap != null
+        ? AudioData.fromMap(Map<String, dynamic>.from(audioInfoMap))
+        : null;
   }
 
-   static Future<Uint8List?> getAudioImage(String filePath) async {
-    final audioEmbeddedPicture = await _channel.invokeMethod('getEmbeddedPicture', {'filePath': filePath});
-    return audioEmbeddedPicture != null ? Uint8List.fromList(audioEmbeddedPicture) : null;
+  static Future<Uint8List?> getAudioImage(String filePath) async {
+    final audioEmbeddedPicture = await _channel
+        .invokeMethod('getEmbeddedPicture', {'filePath': filePath});
+    return audioEmbeddedPicture != null
+        ? Uint8List.fromList(audioEmbeddedPicture)
+        : null;
   }
-  
-
 }
 
 class AudioData {
@@ -48,25 +52,24 @@ class AudioData {
     required this.compilation,
     required this.date,
     required this.discNumber,
-    
   });
 
   factory AudioData.fromMap(Map<String, dynamic> map) {
     return AudioData(
       title: map['title'] ?? "",
-      album: map['album']??"",
-      author: map['author']??"",
-      artist: map['artist']?? "",
-      albumArtist: map['albumArtist']??"",
-      composer: map['composer']??"",
-      genre: map['genre']??"",
-      year: map['year']??"",
-      track: map['track']??"",
-      duration: map['duration']??"",
-      bitRate: map['bitRate']??"",
-      compilation: map['compilation']??"",
-      date: map['date']??"",
-      discNumber: map['discNumber']??"",
+      album: map['album'] ?? "",
+      author: map['author'] ?? "",
+      artist: map['artist'] ?? "",
+      albumArtist: map['albumArtist'] ?? "",
+      composer: map['composer'] ?? "",
+      genre: map['genre'] ?? "",
+      year: map['year'] ?? "",
+      track: map['track'] ?? "",
+      duration: map['duration'] ?? "",
+      bitRate: map['bitRate'] ?? "",
+      compilation: map['compilation'] ?? "",
+      date: map['date'] ?? "",
+      discNumber: map['discNumber'] ?? "",
     );
   }
 }

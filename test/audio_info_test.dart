@@ -7,7 +7,6 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 class MockAudioInfoPlatform
     with MockPlatformInterfaceMixin
     implements AudioInfoPlatform {
-
   @override
   Future<String?> getPlatformVersion() => Future.value('42');
 }
