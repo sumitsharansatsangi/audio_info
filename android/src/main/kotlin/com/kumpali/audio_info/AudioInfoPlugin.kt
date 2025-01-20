@@ -42,10 +42,12 @@ class AudioInfoPlugin : FlutterPlugin, MethodCallHandler {
         }
     }
 
-    private fun getEmbeddedPicture(filePath: String): ByteArray? {
+    private fun getEmbeddedPicture(filePath: String): ByteArray {
         val metaRetriever = MediaMetadataRetriever()
         metaRetriever.setDataSource(filePath)
-        return metaRetriever.embeddedPicture
+        val picture = metaRetriever.embeddedPicture ?: ByteArray(0)
+        metaRetriever.close()
+        return picture
     }
 
     private fun getInfo(filePath: String): Map<String, Any> {
@@ -85,6 +87,7 @@ class AudioInfoPlugin : FlutterPlugin, MethodCallHandler {
         } catch (e: Exception) {
             Log.d("Error", "Error: ${e.message}")
         }
+        metaRetriever.close()
         return audioInfoMap
     }
 }

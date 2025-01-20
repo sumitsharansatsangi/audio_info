@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 
 class AudioInfo {
   static const MethodChannel _channel = MethodChannel('audio_info');
-
   static Future<AudioData?> getAudioInfo(String filePath) async {
     final audioInfoMap =
         await _channel.invokeMethod('getInfo', {'filePath': filePath});
@@ -15,7 +14,7 @@ class AudioInfo {
   static Future<Uint8List?> getAudioImage(String filePath) async {
     final audioEmbeddedPicture = await _channel
         .invokeMethod('getEmbeddedPicture', {'filePath': filePath});
-    return audioEmbeddedPicture != null
+    return audioEmbeddedPicture.isNotEmpty
         ? Uint8List.fromList(audioEmbeddedPicture)
         : null;
   }
