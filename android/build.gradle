@@ -1,0 +1,75 @@
+group = "com.kumpali.audio_info"
+version = "1.0-SNAPSHOT"
+
+buildscript {
+    ext.kotlin_version = "2.1.0"
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath("com.android.tools.build:gradle:8.8.0")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: "com.android.library"
+apply plugin: "kotlin-android"
+
+android {
+    namespace = "com.kumpali.audio_info"
+
+    compileSdk = 35
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_21
+    }
+
+    sourceSets {
+        main.java.srcDirs += "src/main/kotlin"
+        test.java.srcDirs += "src/test/kotlin"
+    }
+
+    defaultConfig {
+        minSdk = 21
+    }
+
+    dependencies {
+//        implementation('org.bytedeco:javacpp:1.5.11')
+//        implementation('org.bytedeco:javacpp:1.5.11:android-arm64')
+//        implementation('org.bytedeco:javacpp:1.5.11:android-x86_64')
+//        implementation('org.bytedeco:ffmpeg:7.1-1.5.11')
+//        implementation('org.bytedeco:ffmpeg:7.1-1.5.11:android-arm64')
+//        implementation('org.bytedeco:ffmpeg:7.1-1.5.11:android-x86_64')
+        // https://mvnrepository.com/artifact/us.ihmc/ffmpeg
+//        implementation("us.ihmc:ffmpeg:7.1-1.5.11")
+
+        testImplementation("org.jetbrains.kotlin:kotlin-test")
+        testImplementation("org.mockito:mockito-core:5.15.2")
+    }
+
+    testOptions {
+        unitTests.all {
+            useJUnitPlatform()
+
+            testLogging {
+               events "passed", "skipped", "failed", "standardOut", "standardError"
+               outputs.upToDateWhen {false}
+               showStandardStreams = true
+            }
+        }
+    }
+}
