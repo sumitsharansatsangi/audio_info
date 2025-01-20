@@ -16,7 +16,7 @@ Add the following dependency to your `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  audio_info: ^0.0.2
+  audio_info: ^0.0.3
 ```
 
 If you want to use the latest version, add this instead:

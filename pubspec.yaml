@@ -3,7 +3,7 @@ description: "A plugin to get detailed audio information from a specific audio f
 This plugin allows you to get metadata such as title, artist, album, author, album artist, composer, genre, year, track, duration, bitrate, compilation, disc number, date.
 This plugin also supports to extract Embeddded Image from audio file.
 It supports various audio formats and retrieves comprehensive information about the audio file, making it useful for music players, audio analyzers, and other multimedia application."
-version: 0.0.2
+version: 0.0.3
 homepage: https://www.kumpali.com
 repository: https://github.com/sumitsharansatsangi/audio_info/
 
