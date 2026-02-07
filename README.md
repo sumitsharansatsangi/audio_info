@@ -153,3 +153,9 @@ Thank you for using and contributing to the Audio Info Plugin!
 
 ## License
 This project is licensed under the MIT License. See the LICENSE file for more details.
+
+## Author
+
+
+[![Sumit Kumar](https://github.com/sumitsharansatsangi.png?size=100)](https://github.com/sumitsharansatsangi)  
+**[Sumit Kumar](https://github.com/sumitsharansatsangi)**
