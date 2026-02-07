@@ -1,3 +1,7 @@
+## 0.0.4
+
+* Support to run with android 36
+
 ## 0.0.3
 
 * Improved the documentation.
