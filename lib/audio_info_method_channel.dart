@@ -21,15 +21,10 @@ class MethodChannelAudioInfo extends AudioInfoPlatform {
 
   @override
   Future<Uint8List?> getAudioImage(String filePath) async {
-    final result = await methodChannel.invokeMethod<List<Object?>>(
+    return methodChannel.invokeMethod<Uint8List>(
       'getEmbeddedPicture',
       {'filePath': filePath},
     );
-    if (result == null || result.isEmpty) {
-      return null;
-    }
-
-    return Uint8List.fromList(result.cast<int>());
   }
 
   @override

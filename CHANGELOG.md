@@ -1,3 +1,9 @@
+## 0.0.6
+
+* Add iOS support for metadata, embedded artwork, and waveform extraction.
+* Add the iOS plugin scaffold, podspec, and example iOS project files.
+* Improve plugin and example-app performance, including waveform rendering and playback UX.
+
 ## 0.0.5
 
 * Align the support for metadata, artwork, and waveform access.

@@ -4,6 +4,7 @@
 
 Current platform support:
 - Android
+- iOS
 
 ## Features
 
@@ -19,7 +20,7 @@ Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  audio_info: ^0.0.4
+  audio_info: ^0.0.6
 ```
 
 ## Import
@@ -83,12 +84,15 @@ final List<double> waveform = await AudioInfo.getWaveform(
 ## Example
 
 ```dart
-import 'dart:typed_data';
+import 'dart:async';
 
 import 'package:audio_info/audio_info.dart';
 import 'package:audio_info/waveform_widget.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:just_audio/just_audio.dart';
 
 void main() {
   runApp(const MyApp());
@@ -99,101 +103,283 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
       home: AudioInfoScreen(),
     );
   }
 }
 
-class AudioInfoScreen extends StatelessWidget {
+class AudioInfoScreen extends StatefulWidget {
   const AudioInfoScreen({super.key});
+
+  @override
+  State<AudioInfoScreen> createState() => _AudioInfoScreenState();
+}
+
+class _AudioInfoScreenState extends State<AudioInfoScreen> {
+  static const Duration _processingTimeout = Duration(seconds: 20);
+
+  final AudioPlayer _player = AudioPlayer();
+
+  AudioData? _audioData;
+  Uint8List? _embeddedPicture;
+  List<double> _waveform = [];
+
+  bool _isPickingFile = false;
+  bool _isLoading = false;
+  bool _isPlaying = false;
+  double _progress = 0.0;
+  Duration _duration = Duration.zero;
+
+  StreamSubscription<Duration>? _positionSub;
+  StreamSubscription<Duration?>? _durationSub;
+  StreamSubscription<PlayerState>? _stateSub;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _positionSub = _player.positionStream.listen((position) {
+      if (!mounted || _duration.inMilliseconds == 0) {
+        return;
+      }
+
+      setState(() {
+        _progress = (position.inMilliseconds / _duration.inMilliseconds)
+            .clamp(0.0, 1.0);
+      });
+    });
+
+    _durationSub = _player.durationStream.listen((duration) {
+      if (!mounted || duration == null) {
+        return;
+      }
+
+      setState(() {
+        _duration = duration;
+      });
+    });
+
+    _stateSub = _player.playerStateStream.listen((state) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isPlaying = state.playing;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _positionSub?.cancel();
+    _durationSub?.cancel();
+    _stateSub?.cancel();
+    _player.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Audio Info Plugin')),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () => pickFile(context),
-          child: const Text('Choose Audio file'),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_audioData != null) ...[
+              Text(
+                _audioData!.title,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 16),
+              if (_waveform.isNotEmpty)
+                LayoutBuilder(
+                  builder: (context, constraints) => GestureDetector(
+                    onTapDown: (details) {
+                      if (_duration == Duration.zero) {
+                        return;
+                      }
+
+                      final fraction =
+                          (details.localPosition.dx / constraints.maxWidth)
+                              .clamp(0.0, 1.0);
+                      _player.seek(
+                        Duration(
+                          milliseconds:
+                              (_duration.inMilliseconds * fraction).round(),
+                        ),
+                      );
+                    },
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 80,
+                      child: WaveformWidget(
+                        waveform: _waveform,
+                        progress: _progress,
+                      ),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(_formatDuration(
+                    Duration(
+                      milliseconds:
+                          (_progress * _duration.inMilliseconds).round(),
+                    ),
+                  )),
+                  Text(_formatDuration(_duration)),
+                ],
+              ),
+              Center(
+                child: IconButton(
+                  iconSize: 56,
+                  icon: Icon(
+                    _isPlaying
+                        ? Icons.pause_circle_filled
+                        : Icons.play_circle_filled,
+                  ),
+                  onPressed: () {
+                    if (_isPlaying) {
+                      _player.pause();
+                    } else {
+                      _player.play();
+                    }
+                  },
+                ),
+              ),
+              const Divider(height: 24),
+              Text('Duration: ${_audioData!.durationFormatted}'),
+              Text('Bitrate: ${_audioData!.bitrateKbps} kbps'),
+              Text('Mime Type: ${_audioData!.mimeType}'),
+            ] else
+              const Expanded(
+                child: Center(child: Text('No audio file selected')),
+              ),
+            if (_isPickingFile || _isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            Center(
+              child: ElevatedButton(
+                onPressed:
+                    (_isPickingFile || _isLoading) ? null : () => pickFile(context),
+                child: Text(
+                  _isPickingFile
+                      ? 'Opening...'
+                      : _isLoading
+                          ? 'Loading...'
+                          : 'Choose Audio File',
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
   Future<void> pickFile(BuildContext context) async {
-    final FilePickerResult? result =
-        await FilePicker.platform.pickFiles(type: FileType.audio);
+    if (_isPickingFile || _isLoading) {
+      return;
+    }
 
-    if (result == null || result.files.single.path == null) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No audio file selected')),
-        );
+    setState(() {
+      _isPickingFile = true;
+    });
+
+    try {
+      final FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: defaultTargetPlatform == TargetPlatform.iOS
+            ? FileType.any
+            : FileType.custom,
+        allowedExtensions: const [
+          'mp3',
+          'm4a',
+          'aac',
+          'wav',
+          'flac',
+          'ogg',
+          'opus',
+          'aiff',
+          'wma',
+        ],
+      );
+
+      if (result == null || result.files.single.path == null) {
+        return;
       }
-      return;
-    }
 
-    final String filePath = result.files.single.path!;
-    final AudioData? audioInfo = await AudioInfo.getAudioInfo(filePath);
-    final Uint8List? embeddedPicture = await AudioInfo.getAudioImage(filePath);
-    final List<double> waveform = await AudioInfo.getWaveform(
-      filePath,
-      samples: 120,
-    );
+      final String filePath = result.files.single.path!;
 
-    if (audioInfo == null || !context.mounted) {
-      return;
-    }
+      setState(() {
+        _isLoading = true;
+      });
 
-    showDialog<void>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Audio Info'),
-          content: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (embeddedPicture != null) Image.memory(embeddedPicture),
-                if (waveform.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  const Text('Waveform'),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: 320,
-                    height: 100,
-                    child: WaveformWidget(waveform: waveform),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                Text('Title: ${audioInfo.title}'),
-                Text('Album: ${audioInfo.album}'),
-                Text('Author: ${audioInfo.author}'),
-                Text('Writer: ${audioInfo.writer}'),
-                Text('Artist: ${audioInfo.artist}'),
-                Text('Album Artist: ${audioInfo.albumArtist}'),
-                Text('Composer: ${audioInfo.composer}'),
-                Text('Genre: ${audioInfo.genre}'),
-                Text('Year: ${audioInfo.year}'),
-                Text('Date: ${audioInfo.date}'),
-                Text('Compilation: ${audioInfo.compilation}'),
-                Text('Track: ${audioInfo.trackNumber}'),
-                Text('Disc Number: ${audioInfo.discNumber}'),
-                Text('Duration: ${audioInfo.durationFormatted}'),
-                Text('Bitrate: ${audioInfo.bitrateKbps} kbps'),
-                Text('Mime Type: ${audioInfo.mimeType}'),
-                Text('Quality: ${audioInfo.quality}'),
-                Text(
-                  'File Size: ${audioInfo.fileSizeMB.toStringAsFixed(2)} MB',
-                ),
-                Text('Has Artwork: ${audioInfo.hasArtwork}'),
-              ],
-            ),
-          ),
-        );
+      final AudioData? info =
+          await AudioInfo.getAudioInfo(filePath).timeout(_processingTimeout);
+      final Uint8List? artwork =
+          await AudioInfo.getAudioImage(filePath).timeout(_processingTimeout);
+      final List<double> waveform =
+          await AudioInfo.getWaveform(filePath, samples: 120)
+              .timeout(_processingTimeout);
+
+      await _player.setFilePath(filePath);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _audioData = info;
+        _embeddedPicture = artwork;
+        _waveform = waveform;
+        _progress = 0.0;
+      });
+    } on PlatformException catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+
+      final String message = error.code == 'multiple_request'
+          ? 'Please wait for the current file picker request to finish.'
+          : error.message ?? 'Failed to pick audio file.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } on TimeoutException {
+      if (!context.mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Loading audio info timed out. Please try another file.'),
+        ),
+      );
+    } finally {
+      if (!mounted) {
+        return;
       },
-    );
+
+      setState(() {
+        _isPickingFile = false;
+        _isLoading = false;
+      });
+    }
   }
 }
 ```
