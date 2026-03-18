@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'audio_info_method_channel.dart';
+import 'audio_info.dart';
 
 abstract class AudioInfoPlatform extends PlatformInterface {
   /// Constructs a AudioInfoPlatform.
@@ -23,7 +26,15 @@ abstract class AudioInfoPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<String?> getPlatformVersion() {
-    throw UnimplementedError('platformVersion() has not been implemented.');
+  Future<AudioData?> getAudioInfo(String filePath) {
+    throw UnimplementedError('getAudioInfo() has not been implemented.');
+  }
+
+  Future<Uint8List?> getAudioImage(String filePath) {
+    throw UnimplementedError('getAudioImage() has not been implemented.');
+  }
+
+  Future<List<double>> getWaveform(String filePath, {int samples = 100}) {
+    throw UnimplementedError('getWaveform() has not been implemented.');
   }
 }

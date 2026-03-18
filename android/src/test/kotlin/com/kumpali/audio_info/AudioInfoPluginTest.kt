@@ -1,6 +1,5 @@
 package com.kumpali.audio_info
 
-import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import kotlin.test.Test
 import org.mockito.Mockito
@@ -15,13 +14,13 @@ import org.mockito.Mockito
 
 internal class AudioInfoPluginTest {
   @Test
-  fun onMethodCall_getPlatformVersion_returnsExpectedValue() {
+  fun onMethodCall_unknownMethod_isNotImplemented() {
     val plugin = AudioInfoPlugin()
 
-    val call = MethodCall("getPlatformVersion", null)
+    val call = io.flutter.plugin.common.MethodCall("getPlatformVersion", null)
     val mockResult: MethodChannel.Result = Mockito.mock(MethodChannel.Result::class.java)
     plugin.onMethodCall(call, mockResult)
 
-    Mockito.verify(mockResult).success("Android " + android.os.Build.VERSION.RELEASE)
+    Mockito.verify(mockResult).notImplemented()
   }
 }

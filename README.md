@@ -1,52 +1,97 @@
-# Audio Info Plugin
+# audio_info
 
-* A Flutter plugin to retrieve detailed audio information from a specific audio file.
-* This plugin allows you to get metadata such as title, artist, album, author, album artist, composer, genre, year, track, duration, bitrate, compilation, disc number, date.
-* This plugin also supports to extract Embeddded Image from audio file.
+`audio_info` is a Flutter plugin for reading audio metadata, embedded artwork, and lightweight waveform samples from a local audio file.
 
-## Introduction
+Current platform support:
+- Android
 
-The Audio Info Plugin provides a simple interface to extract detailed metadata from audio files in your Flutter applications. It supports various audio formats and retrieves comprehensive information about the audio file, making it useful for music players, audio analyzers, and other multimedia applications.
+## Features
 
-## How to Use
+- Read common metadata such as title, album, artist, composer, genre, year, track, and disc number
+- Read extended metadata including author, writer, date, and compilation
+- Read technical information such as duration, bitrate, mime type, file size, and quality classification
+- Extract embedded album artwork
+- Generate waveform sample data for simple visualizations
 
-### 1. Add the dependency
+## Installation
 
-Add the following dependency to your `pubspec.yaml` file:
-
-```yaml
-dependencies:
-  audio_info: ^0.0.3
-```
-
-If you want to use the latest version, add this instead:
+Add the package to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  audio_info:
-    git:
-      url: https://github.com/sumitsharansatsangi/audio_info.git
+  audio_info: ^0.0.4
 ```
-### 2. Import the plugin
 
-Import the plugin in your Dart code:
+## Import
 
 ```dart
 import 'package:audio_info/audio_info.dart';
+import 'package:audio_info/waveform_widget.dart';
 ```
-### 3. Get audio information
 
-Use the plugin to retrieve detailed audio information from a specific file:
+## API
+
+### Read metadata
+
+```dart
+final AudioData? info = await AudioInfo.getAudioInfo(filePath);
+```
+
+### Read embedded artwork
+
+```dart
+final Uint8List? artwork = await AudioInfo.getAudioImage(filePath);
+```
+
+### Read waveform data
+
+```dart
+final List<double> waveform = await AudioInfo.getWaveform(
+  filePath,
+  samples: 120,
+);
+```
+
+## AudioData fields
+
+`AudioData` currently exposes:
+
+- `title`
+- `album`
+- `author`
+- `writer`
+- `artist`
+- `albumArtist`
+- `composer`
+- `genre`
+- `year`
+- `date`
+- `compilation`
+- `trackNumber`
+- `discNumber`
+- `durationMs`
+- `durationSec`
+- `durationFormatted`
+- `bitrate`
+- `bitrateKbps`
+- `mimeType`
+- `fileSizeBytes`
+- `fileSizeMB`
+- `quality`
+- `hasArtwork`
+
+## Example
 
 ```dart
 import 'dart:typed_data';
 
+import 'package:audio_info/audio_info.dart';
+import 'package:audio_info/waveform_widget.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:audio_info/audio_info.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -54,7 +99,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       home: AudioInfoScreen(),
     );
   }
@@ -66,17 +111,11 @@ class AudioInfoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Audio Info Plugin')),
+      appBar: AppBar(title: const Text('Audio Info Plugin')),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text('Audio Info Plugin'),
-            ElevatedButton(
-              onPressed: () => pickFile(context),
-              child: Text('Choose Audio file'),
-            ),
-          ],
+        child: ElevatedButton(
+          onPressed: () => pickFile(context),
+          child: const Text('Choose Audio file'),
         ),
       ),
     );
@@ -85,77 +124,92 @@ class AudioInfoScreen extends StatelessWidget {
   Future<void> pickFile(BuildContext context) async {
     final FilePickerResult? result =
         await FilePicker.platform.pickFiles(type: FileType.audio);
-    if (result != null && result.files.single.path != null) {
-      AudioData? audioInfo =
-          await AudioInfo.getAudioInfo(result.files.single.path!);
-      Uint8List? embeddedPicture =
-          await AudioInfo.getAudioImage(result.files.single.path!);
-      if (audioInfo != null && context.mounted) {
-        showDialog(
-            context: context,
-            builder: (context) {
-              return AlertDialog(
-                title: Text('Audio Info'),
-                content: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (embeddedPicture != null)
-                          Image.memory(embeddedPicture),
-                        Text('Title: ${audioInfo.title}'),
-                        Text('Album: ${audioInfo.album}'),
-                        Text('Author: ${audioInfo.author}'),
-                        Text('Artist: ${audioInfo.artist}'),
-                        Text('Album Artist: ${audioInfo.albumArtist}'),
-                        Text('Composer: ${audioInfo.composer}'),
-                        Text('Genre: ${audioInfo.genre}'),
-                        Text('Year: ${audioInfo.year}'),
-                        Text('Track: ${audioInfo.track}'),
-                        Text(
-                            'Duration: ${int.parse(audioInfo.duration) / 1000}s'),
-                        Text('BitRate: ${audioInfo.bitRate} kbps'),
-                        Text('Compilation: ${audioInfo.compilation}'),
-                        Text('Disc Number: ${audioInfo.discNumber}'),
-                        Text('Date: ${audioInfo.date}'),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            });
-      } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('No audio file selected')));
-        }
+
+    if (result == null || result.files.single.path == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No audio file selected')),
+        );
       }
+      return;
     }
+
+    final String filePath = result.files.single.path!;
+    final AudioData? audioInfo = await AudioInfo.getAudioInfo(filePath);
+    final Uint8List? embeddedPicture = await AudioInfo.getAudioImage(filePath);
+    final List<double> waveform = await AudioInfo.getWaveform(
+      filePath,
+      samples: 120,
+    );
+
+    if (audioInfo == null || !context.mounted) {
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Audio Info'),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (embeddedPicture != null) Image.memory(embeddedPicture),
+                if (waveform.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Text('Waveform'),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: 320,
+                    height: 100,
+                    child: WaveformWidget(waveform: waveform),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Text('Title: ${audioInfo.title}'),
+                Text('Album: ${audioInfo.album}'),
+                Text('Author: ${audioInfo.author}'),
+                Text('Writer: ${audioInfo.writer}'),
+                Text('Artist: ${audioInfo.artist}'),
+                Text('Album Artist: ${audioInfo.albumArtist}'),
+                Text('Composer: ${audioInfo.composer}'),
+                Text('Genre: ${audioInfo.genre}'),
+                Text('Year: ${audioInfo.year}'),
+                Text('Date: ${audioInfo.date}'),
+                Text('Compilation: ${audioInfo.compilation}'),
+                Text('Track: ${audioInfo.trackNumber}'),
+                Text('Disc Number: ${audioInfo.discNumber}'),
+                Text('Duration: ${audioInfo.durationFormatted}'),
+                Text('Bitrate: ${audioInfo.bitrateKbps} kbps'),
+                Text('Mime Type: ${audioInfo.mimeType}'),
+                Text('Quality: ${audioInfo.quality}'),
+                Text(
+                  'File Size: ${audioInfo.fileSizeMB.toStringAsFixed(2)} MB',
+                ),
+                Text('Has Artwork: ${audioInfo.hasArtwork}'),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
-
 ```
 
-## Contribute
-We welcome contributions to improve the Audio Info Plugin. If you have any suggestions, bug reports, or feature requests, please open an issue on our GitHub repository.
+## Notes
 
-## Steps to Contribute
-1. Fork the repository on GitHub.
+- `getWaveform` returns sampled amplitude values intended for lightweight UI rendering.
+- The waveform output is approximate and depends on the source format and Android media stack behavior.
+- Metadata availability varies by audio file format and embedded tags.
 
-2. Create a new branch with your feature or bug fix.
+## Contributing
 
-3. Write your code and test it thoroughly.
+Issues and pull requests are welcome on the repository:
 
-4. Create a pull request with a clear description of your changes.
-
-Thank you for using and contributing to the Audio Info Plugin!
+`https://github.com/sumitsharansatsangi/audio_info/`
 
 ## License
-This project is licensed under the MIT License. See the LICENSE file for more details.
 
-## Author
-
-
-[![Sumit Kumar](https://github.com/sumitsharansatsangi.png?size=100)](https://github.com/sumitsharansatsangi)  
-**[Sumit Kumar](https://github.com/sumitsharansatsangi)**
+This project is licensed under the MIT License. See `LICENSE`.
