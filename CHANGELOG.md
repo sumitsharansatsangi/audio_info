@@ -1,6 +1,6 @@
 ## 0.0.5
 
-* Align the Dart API with the platform interface for metadata, artwork, and waveform access.
+* Align the support for metadata, artwork, and waveform access.
 * Add missing `AudioData` fields for `writer`, `date`, and `compilation`.
 * Update the example app to render waveform data and show the expanded metadata set.
 * Improve Android plugin error handling and waveform/downsampling safeguards.
